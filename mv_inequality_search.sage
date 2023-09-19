@@ -1,4 +1,4 @@
-def V(A: Polyhedron, B: Polyhedron):
+def mixed_volume(A: Polyhedron, B: Polyhedron):
     """
     Compute the mixed volume of two polyhedra A and B in R^2.
     """
@@ -15,7 +15,7 @@ def generate_inequality_terms(n: int):
     term_list = []
     for mv_1 in Subsets(bodies, 2):
         if n - mv_1[0] < 2:
-            # Not enough space for another mv factor
+            # Not enough space for another mixed volume factor
             continue
         
         # Get subset of remaining bodies so that terms aren't repeated
@@ -28,13 +28,13 @@ def generate_inequality_terms(n: int):
 
     return Set(term_list)
 
-def compute_inequality_terms(terms: Set, bodies: Set):
+def compute_inequality_terms(terms: Set, bodies: Set, mixed_volume=mixed_volume):
     """
     Compute the values of polynomial inequality terms of the form V(a,b)V(c,d)
     where a neq b neq c neq d provided a set of bodies.
     """
     return tuple([
-        V(bodies[term[0][0]], bodies[term[0][1]]) * V(bodies[term[1][0]], bodies[term[1][1]])
+        mixed_volume(bodies[term[0][0]], bodies[term[0][1]]) * mixed_volume(bodies[term[1][0]], bodies[term[1][1]])
         for term in terms
     ])
 
@@ -43,7 +43,7 @@ body_types = Set([
     Polyhedron([(0,0), (0,1)]) 
 ])
 
-def compute_rays(n: int):
+def compute_rays(n: int, mixed_volume=mixed_volume, body_types=body_types):
     """
     Find the rays in term value space produced by n bodies when the terms follow
     the form V(a,b)V(c,d) where a neq b neq c neq d.
@@ -53,16 +53,16 @@ def compute_rays(n: int):
     return list(filter(
         lambda x: sum(x) != 0, 
         map(
-            lambda s: compute_inequality_terms(terms, s),
+            lambda s: compute_inequality_terms(terms, s, mixed_volume=mixed_volume),
             body_space
         )
     ))
 
-def compute_convex_hull(n: int):
+def compute_convex_hull(n: int, mixed_volume=mixed_volume, body_types=body_types):
     """
     Find convex hull of rays in term value space produced by n bodies when the terms follow
     the form V(a,b)V(c,d) where a neq b neq c neq d.
     """
-    rays = compute_rays(n)
+    rays = compute_rays(n, mixed_volume=mixed_volume, body_types=body_types)
     pmv = Polyhedron(rays=rays)
     return pmv
