@@ -97,27 +97,22 @@ def term_permutation_from_body_permutation(p: Permutation, term_list: list[Set])
     """
     return Permutation([term_list.index(permute_bodies(p, term))+1 for term in term_list])
 
-def get_orbit_of_relation(rel: Expression, term_group: PermutationGroup, x_vec: vector):
-    """
-    Compute the orbit of a relation under the action of the term group
-    """
-
-    # Encode the relation as a tuple of sets (functionally tuples of tuples)
-    v_rel = list(rel.vector()[1:])
-    d_rel = defaultdict(list)
-    for i, coefficient in enumerate(v_rel):
-        d_rel[coefficient].append(i+1)
-    coefficient_values = list(d_rel.keys())
-    encoded_rel = tuple(tuple(d_rel[key]) for key in d_rel)
-
-    # Use GAP to calculate orbit
-    o = term_group.orbit(encoded_rel, action="OnTuplesSets")
-
-    # Decode the orbit elements back into relations
-    return Set([
-        sum(
-            sum(coefficient_values[i] * x_vec[term_index-1] for term_index in term_group)
-            for i, term_group in enumerate(orbit_element)
-        )
-        for orbit_element in o
-    ])
+def get_orbit_of_relation(rel: vector, term_group: PermutationGroup):
+    orbit = []
+    for p in term_group:
+        result = p.matrix() * rel
+        if result not in orbit:
+            orbit.append(result)
+    return orbit
+    
+def get_all_orbits(rels: list[vector], term_group: PermutationGroup):
+    orbits = []
+    for rel in rels:
+        not_in_orbit = True
+        for orbit in orbits:
+            if rel in orbit:
+                not_in_orbit = False
+                break
+        if not_in_orbit:
+            orbits.append(get_orbit_of_relation(rel, term_group))
+    return orbits
