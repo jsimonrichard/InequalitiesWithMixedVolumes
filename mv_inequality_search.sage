@@ -3,9 +3,9 @@ from collections import defaultdict
 
 def mixed_volume(A: Polyhedron, B: Polyhedron):
     """
-    Compute the mixed volume of two polyhedra A and B in R^2.
+    Compute the mixed volume (times 2) of two polyhedra A and B in R^2.
     """
-    return 1/2 * ((A+B).volume() - A.volume() - B.volume())
+    return ((A+B).volume() - A.volume() - B.volume())
 
 def generate_inequality_terms(n: int, dimension=2, term_factors=3):
     """
@@ -40,23 +40,27 @@ def compute_inequality_terms(terms: Set, bodies: Set, mixed_volume=mixed_volume)
 
 body_types = Set([
     Polyhedron([(0,0), (1,0)]),
-    Polyhedron([(0,0), (0,1)]) 
+    Polyhedron([(0,0), (1,1)]),
+    Polyhedron([(0,0), (0,1)])
 ])
 
 def compute_rays(n: int, mixed_volume=mixed_volume, body_types=body_types):
     """
     Find the rays in term value space produced by n bodies when the terms follow
     the form V(a,b)V(c,d) where a neq b neq c neq d.
+    ...must have multiplicity at least 2 so that it's "rigid"
     """
     terms = generate_inequality_terms(n)
     body_space = cartesian_product([body_types] * n)
-    return list(filter(
-        lambda x: sum(x) != 0, 
-        map(
-            lambda s: compute_inequality_terms(terms, s, mixed_volume=mixed_volume),
-            body_space
-        )
-    ))
+    rays = []
+    configurations = []
+    for s in body_space:
+        ray = compute_inequality_terms(terms, s, mixed_volume=mixed_volume)
+        if sum(ray) != 0 and ray not in rays:
+            rays.append(ray)
+            configurations.append(s)
+    return rays, configurations
+            
 
 def compute_convex_hull(n: int, mixed_volume=mixed_volume, body_types=body_types):
     """
