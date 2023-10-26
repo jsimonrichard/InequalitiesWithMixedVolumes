@@ -38,36 +38,51 @@ def compute_inequality_terms(terms: Set, bodies: Set, mixed_volume=mixed_volume)
         for term in terms
     )
 
-body_types = Set([
-    Polyhedron([(0,0), (1,0)]),
-    Polyhedron([(0,0), (1,1)]),
-    Polyhedron([(0,0), (0,1)])
-])
+def generate_vector_combinations(n: int, term_factors=3):
+    """
+    Generate all required vector multiset combinations with appropriate multiplicity
+    """
+    max_multiplicity = term_factors # Otherwise all terms collapse to 0 (pigeonhole principle)
+    min_multiplicity = 2 # Otherwise the single line segment can be transformed with linearity
+    combinations = []
+    for k in range(2, floor(n/2)+1):
+        # k: number of ordered vectors
+        # All vectors will have at least 2, so we'll add 2 after generating the combinations
+        m = n - min_multiplicity*k
+        multiset = list(range(k)) * (max_multiplicity-min_multiplicity)
+        base = list(range(k)) * min_multiplicity
+        combinations.extend(map(
+            lambda c: base + c,
+            Combinations(multiset, m).list()
+        ))
+    return combinations
 
-def compute_rays(n: int, mixed_volume=mixed_volume, body_types=body_types):
+def compute_rays(n: int, dimension=2, term_factors=3, mixed_volume=mixed_volume):
     """
     Find the rays in term value space produced by n bodies when the terms follow
-    the form V(a,b)V(c,d) where a neq b neq c neq d.
-    ...must have multiplicity at least 2 so that it's "rigid"
+    the form V(a_1,b_1)*...*V(c_{term_factors},d_{term_factors})
     """
-    terms = generate_inequality_terms(n)
-    body_space = cartesian_product([body_types] * n)
+    terms = generate_inequality_terms(n, dimension=dimension, term_factors=term_factors)
+    vector_combinations = generate_vector_combinations(n, term_factors=term_factors)
+
     rays = []
     configurations = []
-    for s in body_space:
-        ray = compute_inequality_terms(terms, s, mixed_volume=mixed_volume)
-        if sum(ray) != 0 and ray not in rays:
-            rays.append(ray)
-            configurations.append(s)
+    for combination in vector_combinations:
+        for arrangement in Arrangements(combination, n):
+            rays.append(compute_inequality_terms(
+                terms,
+                list(map(lambda a: Polyhedron([(0,0), (1,a)]), arrangement)),
+                mixed_volume=mixed_volume
+            ))
+            configurations.append(arrangement)
     return rays, configurations
-            
 
-def compute_convex_hull(n: int, mixed_volume=mixed_volume, body_types=body_types):
+def compute_convex_hull(n: int, mixed_volume=mixed_volume):
     """
     Find convex hull of rays in term value space produced by n bodies when the terms follow
     the form V(a,b)V(c,d) where a neq b neq c neq d.
     """
-    rays = compute_rays(n, mixed_volume=mixed_volume, body_types=body_types)
+    rays, _ = compute_rays(n, mixed_volume=mixed_volume)
     pmv = Polyhedron(rays=rays)
     return pmv
 
